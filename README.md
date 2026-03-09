@@ -34,30 +34,26 @@ cd "Weather Web App FullStack"
 
 ### 2. Configure environment variables
 
-Copy the example files and fill in your credentials:
+Copy the example file and fill in your credentials:
 
 ```bash
-# Root (for Docker Compose)
 cp .env.example .env
-
-# Backend
-cp backend/.env.example backend/.env
-
-# Frontend
-cp frontend/.env.example frontend/.env.local
 ```
 
-**Required values:**
+Docker Compose reads all variables from the **root `.env`** file and injects them into both containers — no separate `backend/.env` or `frontend/.env.local` needed.
 
-| Variable                 | Where                      | Description                                |
-| ------------------------ | -------------------------- | ------------------------------------------ |
-| `OPENWEATHER_API_KEY`    | backend `.env`, root `.env`| Your OpenWeatherMap API key                |
-| `AUTH0_DOMAIN`           | frontend `.env.local`      | e.g. `your-tenant.auth0.com`              |
-| `AUTH0_CLIENT_ID`        | frontend `.env.local`      | Auth0 application client ID               |
-| `AUTH0_CLIENT_SECRET`    | frontend `.env.local`      | Auth0 application client secret           |
-| `AUTH0_SECRET`           | frontend `.env.local`      | Random string ≥32 chars for session encryption |
-| `AUTH0_AUDIENCE`         | both                       | Auth0 API identifier                       |
-| `AUTH0_ISSUER_BASE_URL`  | backend `.env`             | `https://your-tenant.auth0.com`           |
+**Required values (in root `.env`):**
+
+| Variable                 | Description                                |
+| ------------------------ | ------------------------------------------ |
+| `OPENWEATHER_API_KEY`    | Your OpenWeatherMap API key                |
+| `AUTH0_DOMAIN`           | e.g. `your-tenant.auth0.com`              |
+| `AUTH0_CLIENT_ID`        | Auth0 application client ID               |
+| `AUTH0_CLIENT_SECRET`    | Auth0 application client secret           |
+| `AUTH0_SECRET`           | Random string ≥32 chars for session encryption |
+| `AUTH0_AUDIENCE`         | Auth0 API identifier (e.g. `https://weather-api`) |
+| `AUTH0_ISSUER_BASE_URL`  | `https://your-tenant.auth0.com`           |
+| `APP_BASE_URL`           | `http://localhost:3000`                   |
 
 ### 3. Run with Docker (recommended)
 
@@ -70,6 +66,15 @@ docker compose -f docker-compose.dev.yml up --build
 ```
 
 ### 4. Run locally (without Docker)
+
+When running without Docker, create local env files from the examples:
+
+```bash
+cp backend/.env.example backend/.env
+# Then fill in backend/.env with your credentials
+```
+
+For the frontend, create `frontend/.env.local` with the Auth0 and backend URL vars.
 
 ```bash
 # Start Redis
@@ -106,30 +111,37 @@ npm run dev  # runs on :3000
 
 The Comfort Index is a **0–100 numerical score** that quantifies how "comfortable" the weather is for humans at a given location. Higher scores indicate more pleasant conditions.
 
-### Formula
+Critically, the algorithm uses the **"feels like" temperature** from OpenWeatherMap rather than the raw temperature. This accounts for the combined effects of humidity (heat index) and wind chill, so a 28°C day with 80% humidity in Colombo is correctly penalised because it *feels* like ~33°C.
 
-The score is a **weighted average of five normalised sub-scores**:
+### Aggregation: Weighted Geometric Mean
+
+Unlike a simple weighted arithmetic average (where good scores in secondary metrics can mask bad primary scores), this algorithm uses a **weighted geometric mean**:
 
 ```
-ComfortIndex = 0.35 × T_score + 0.25 × H_score + 0.20 × W_score + 0.10 × C_score + 0.10 × V_score
+ComfortIndex = exp( 0.35·ln(T) + 0.25·ln(H) + 0.20·ln(W) + 0.10·ln(C) + 0.10·ln(V) )
 ```
 
-| Parameter       | Weight | Ideal Range           | Rationale                                                            |
-| --------------- | ------ | --------------------- | -------------------------------------------------------------------- |
-| Temperature (°C)| 35%    | 20–26 °C              | Primary factor in thermal comfort (ASHRAE Standard 55)                |
-| Humidity (%)    | 25%    | 30–60%                | High humidity impedes evaporative cooling; low humidity dries mucous membranes |
-| Wind Speed (m/s)| 20%    | 0–3 m/s               | Light breeze is pleasant; strong wind is uncomfortable               |
-| Cloudiness (%)  | 10%    | 0–40%                 | Partial cloud cover is acceptable; overcast is mildly gloomy         |
-| Visibility (m)  | 10%    | ≥10 km                | Good visibility improves outdoor experience                          |
+The geometric mean ensures **a single bad parameter drags the composite score down significantly**. For example, 95% humidity (score ≈ 10) will slash the overall score even if temperature, wind, clouds, and visibility are all perfect.
+
+### Sub-Score Parameters
+
+| Parameter              | Weight | Ideal Range | Score at Ideal | Score at Extreme |
+| ---------------------- | ------ | ----------- | -------------- | ---------------- |
+| Feels-like Temp (°C)   | 35%    | 18–24 °C    | 100            | 0 at −10 °C / 40 °C |
+| Humidity (%)           | 25%    | 30–50%      | 100            | 0 at 0% / 100%  |
+| Wind Speed (m/s)       | 20%    | 0–3 m/s     | 100            | 0 at 20 m/s     |
+| Cloudiness (%)         | 10%    | 0–40%       | 100            | 50 at 100%       |
+| Visibility (m)         | 10%    | ≥10 km      | 100            | 0 at 0 m        |
 
 ### Sub-Score Details
 
-**Temperature** (35% weight — most impactful):
-- 20–26 °C → 100 (the thermoneutral zone for a lightly clothed sedentary person)
-- Falls linearly to 0 at −10 °C (cold extreme) and 45 °C (heat extreme)
+**Feels-like Temperature** (35% weight — most impactful):
+- 18–24 °C → 100 (the thermoneutral zone for a lightly clothed sedentary person)
+- Cold side: falls linearly to 0 at −10 °C (28° span)
+- Hot side: falls linearly to 0 at 40 °C (16° span — heat is penalised more aggressively)
 
 **Humidity** (25%):
-- 30–60% → 100
+- 30–50% → 100 (tighter ideal range than typical comfort charts)
 - 0% or 100% → 0 (both extremes are uncomfortable)
 
 **Wind Speed** (20%):
@@ -144,17 +156,42 @@ ComfortIndex = 0.35 × T_score + 0.25 × H_score + 0.20 × W_score + 0.10 × C_s
 - ≥10 km → 100
 - 0 m → 0 (fog/smog conditions)
 
+### Compound Penalty Multipliers
+
+After the geometric mean, two exponential multipliers capture compounding discomfort:
+
+1. **Heat-stress multiplier** — activates when `feels_like > 26°C` AND `humidity > 50%`:
+   ```
+   penalty = exp( −2 × heat_factor × humid_factor )
+   ```
+   This models how hot-humid conditions are disproportionately worse than either alone. At tropical extremes (40°C, 100% humidity), the score can be reduced by up to ~86%.
+
+2. **Cold-wind multiplier** — activates when `feels_like < 5°C` AND `wind > 5 m/s`:
+   ```
+   penalty = exp( −1.5 × cold_factor × wind_factor )
+   ```
+   This models wind chill compounding, where cold + windy is far worse than cold and calm.
+
 ### Why these weights?
 
-1. **Temperature dominates** because thermal comfort research consistently shows temperature as the strongest predictor of human comfort outdoors.
-2. **Humidity is second** because it directly affects how we perceive temperature (heat index).
+1. **Temperature dominates** because thermal comfort research consistently shows perceived temperature as the strongest predictor of human comfort outdoors.
+2. **Humidity is second** because it directly affects how we perceive temperature (heat index). The tighter 30–50% ideal range ensures tropical cities with 70–90% humidity are properly penalised.
 3. **Wind is third** due to wind chill effects in cold weather and general discomfort in high winds.
 4. **Cloudiness and visibility** are secondary — they affect mood and outdoor enjoyment but not physical comfort as strongly.
 
+### Why Geometric Mean + Multipliers?
+
+| Approach | Problem |
+| -------- | ------- |
+| Arithmetic mean | Good secondary scores mask bad primary scores (e.g., Colombo at 28°C + 80% humidity scored 74/100) |
+| Geometric mean only | Better, but still can't capture compound effects (hot + humid together is worse than sum of parts) |
+| **Geometric mean + exponential multipliers** | Low scores in any dimension drag the total down; compound conditions (heat+humidity, cold+wind) are penalised exponentially |
+
 ### Trade-offs Considered
 
-- **Simplicity vs. accuracy**: A more complex model could include dew point, UV index, and air quality. We chose five readily-available parameters to keep the formula transparent and reproducible.
-- **Linear interpolation vs. non-linear curves**: Linear piecewise functions were chosen for simplicity. In reality, discomfort increases non-linearly at extreme temperatures, but the linear model provides a good first approximation.
+- **Feels-like vs. raw temperature**: Using `feels_like` from OpenWeatherMap means the score already accounts for humidity and wind chill in the temperature component. This creates a slight double-counting with the humidity sub-score, but in practice it produces more realistic rankings.
+- **Asymmetric heat penalty**: The hot side of the temperature curve is steeper (16° span to 0 vs. 28° on the cold side). This reflects the fact that extreme heat is more dangerous and uncomfortable than moderate cold.
+- **Sub-score floor at 1**: Sub-scores are floored at 1 (not 0) to avoid `ln(0)` in the geometric mean. This means truly extreme conditions score ~1 instead of exactly 0.
 - **Cloudiness floor at 50**: Overcast skies reduce the score by at most 50% of the cloudiness weight, acknowledging that cloud cover is subjective and culturally variable.
 
 ---
@@ -240,4 +277,4 @@ cd backend
 npm test
 ```
 
-All 23 unit tests cover the Comfort Index sub-score functions and the composite scoring function.
+All 31 unit tests cover the Comfort Index sub-score functions and the composite scoring function, including real-world scenarios (e.g., verifying that a hot-humid city like Colombo scores lower than a mild European city).

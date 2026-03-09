@@ -1,19 +1,52 @@
 @import "tailwindcss";
 
+/* ───── Light Theme (default) ───── */
 :root {
-  --bg-primary: #0b1120;
-  --bg-secondary: #111827;
-  --bg-card: #1e293b;
-  --bg-card-hover: #263347;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --bg-primary: #f0f4f8;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-inset: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
   --accent-blue: #3b82f6;
   --accent-orange: #f97316;
   --accent-green: #22c55e;
   --accent-red: #ef4444;
   --accent-yellow: #eab308;
+  --border-color: #e2e8f0;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 10px 25px rgba(0, 0, 0, 0.1);
+  --gradient-start: #eff6ff;
+  --gradient-end: #f0f4f8;
+  --bar-track: #e2e8f0;
+  --skeleton-from: #e2e8f0;
+  --skeleton-via: #f1f5f9;
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --input-bg: #f8fafc;
+}
+
+/* ───── Dark Theme ───── */
+.dark {
+  --bg-primary: #0b1120;
+  --bg-secondary: #111827;
+  --bg-card: #1e293b;
+  --bg-card-hover: #263347;
+  --bg-inset: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
   --border-color: #1e293b;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 10px 25px rgba(0, 0, 0, 0.4);
+  --gradient-start: #0b1120;
+  --gradient-end: #111827;
+  --bar-track: #0f172a;
+  --skeleton-from: #1e293b;
+  --skeleton-via: #334155;
+  --nav-bg: rgba(17, 24, 39, 0.92);
+  --input-bg: #0f172a;
 }
 
 @theme inline {
@@ -28,12 +61,14 @@
 }
 
 body {
-  background: var(--bg-primary);
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
   color: var(--text-primary);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
+/* ───── Scrollbar ───── */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -45,21 +80,29 @@ body {
   border-radius: 3px;
 }
 
+/* ───── Card Hover ───── */
 .weather-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--shadow-card);
 }
 .weather-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
 }
 
+/* ───── Skeleton shimmer ───── */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-via) 50%, var(--skeleton-from) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
+}
+
+/* ───── Theme transition helpers ───── */
+.theme-transition {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }

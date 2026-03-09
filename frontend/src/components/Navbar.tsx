@@ -1,30 +1,22 @@
 "use client";
 
 import { useUser } from "@auth0/nextjs-auth0";
+import { useTheme } from "@/components/ThemeProvider";
+import { CloudSun, Menu, Sun, Moon } from "lucide-react";
 
 export default function Navbar() {
   const { user, isLoading } = useUser();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#111827]/95 backdrop-blur border-b border-[#1e293b]">
+    <nav className="sticky top-0 z-50 backdrop-blur border-b theme-transition"
+      style={{ background: "var(--nav-bg)", borderColor: "var(--border-color)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo / Brand */}
-          <a href="/" className="flex items-center gap-2">
-            <svg
-              className="w-8 h-8 text-blue-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
-              />
-            </svg>
-            <span className="text-xl font-bold text-white">
+          <a href="/" className="flex items-center gap-2.5">
+            <CloudSun className="w-7 h-7 text-blue-500" />
+            <span className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
               Weather<span className="text-blue-500">Analytics</span>
             </span>
           </a>
@@ -33,25 +25,37 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-6">
             <a
               href="/"
-              className="text-sm text-gray-300 hover:text-white transition"
+              className="text-sm transition hover:text-blue-500"
+              style={{ color: "var(--text-secondary)" }}
             >
               Dashboard
             </a>
             <a
               href="/debug"
-              className="text-sm text-gray-300 hover:text-white transition"
+              className="text-sm transition hover:text-blue-500"
+              style={{ color: "var(--text-secondary)" }}
             >
               Debug
             </a>
           </div>
 
-          {/* User / Auth */}
-          <div className="flex items-center gap-4">
+          {/* Right side: theme toggle + auth */}
+          <div className="flex items-center gap-3">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg transition hover:bg-blue-500/10"
+              style={{ color: "var(--text-secondary)" }}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            >
+              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
             {isLoading ? (
               <div className="skeleton w-24 h-8" />
             ) : user ? (
               <div className="flex items-center gap-3">
-                <span className="hidden sm:inline text-sm text-gray-400">
+                <span className="hidden sm:inline text-sm" style={{ color: "var(--text-muted)" }}>
                   {user.email}
                 </span>
                 <img
@@ -89,31 +93,22 @@ export default function Navbar() {
 function MobileMenu() {
   return (
     <details className="relative">
-      <summary className="list-none cursor-pointer p-2 rounded-md hover:bg-[#1e293b] transition">
-        <svg
-          className="w-5 h-5 text-gray-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
+      <summary className="list-none cursor-pointer p-2 rounded-md transition hover:bg-blue-500/10">
+        <Menu className="w-5 h-5" style={{ color: "var(--text-muted)" }} />
       </summary>
-      <div className="absolute right-0 mt-2 w-48 rounded-lg bg-[#1e293b] border border-[#334155] shadow-xl py-2 z-50">
+      <div className="absolute right-0 mt-2 w-48 rounded-lg border shadow-xl py-2 z-50 theme-transition"
+        style={{ background: "var(--bg-card)", borderColor: "var(--border-color)" }}>
         <a
           href="/"
-          className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#263347] hover:text-white transition"
+          className="block px-4 py-2 text-sm transition hover:text-blue-500"
+          style={{ color: "var(--text-secondary)" }}
         >
           Dashboard
         </a>
         <a
           href="/debug"
-          className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#263347] hover:text-white transition"
+          className="block px-4 py-2 text-sm transition hover:text-blue-500"
+          style={{ color: "var(--text-secondary)" }}
         >
           Debug
         </a>

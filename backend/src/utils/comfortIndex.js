@@ -3,23 +3,32 @@
  * =======================
  * Score range: 0–100 (higher = more comfortable)
  *
+ * Uses the "feels like" temperature (accounts for humidity + wind chill)
+ * rather than raw temperature, so hot‑humid cities like Colombo are
+ * properly penalised.
+ *
+ * Aggregation: **Weighted geometric mean** instead of arithmetic mean.
+ * This ensures that a single bad parameter (e.g. 95% humidity) drags
+ * the overall score down much more than in an additive model, producing
+ * wider and more realistic score spreads.
+ *
  * Formula uses 5 weather parameters:
- *   1. Temperature (°C) — weight 35%
- *   2. Humidity (%)     — weight 25%
- *   3. Wind Speed (m/s) — weight 20%
- *   4. Cloudiness (%)   — weight 10%
- *   5. Visibility (m)   — weight 10%
+ *   1. Feels‑like Temperature (°C) — weight 35%
+ *   2. Humidity (%)                — weight 25%
+ *   3. Wind Speed (m/s)            — weight 20%
+ *   4. Cloudiness (%)              — weight 10%
+ *   5. Visibility (m)              — weight 10%
  *
- * Each sub‑score is normalised to 0–100 using piecewise‑linear curves
- * centred around "ideal" human‑comfort values derived from
- * ASHRAE Standard 55 and common bioclimatic research.
+ * Post‑aggregation multipliers:
+ *   • Heat‑stress: exponential penalty when feels_like > 26 °C AND humidity > 50 %
+ *   • Cold‑wind:   exponential penalty when feels_like < 5 °C AND wind > 5 m/s
  *
- * Ideal ranges:
- *   • Temperature: 20‑26 °C  (full score)
- *   • Humidity:    30‑60 %   (full score)
- *   • Wind:        0‑3  m/s  (full score, degrades above 10 m/s)
- *   • Cloudiness:  0‑40 %    (full score, slight penalty for overcast)
- *   • Visibility:  ≥10 km    (full score, penalty below 5 km)
+ * Ideal ranges (ASHRAE Standard 55 + bioclimatic research):
+ *   • Feels‑like temp: 18‑24 °C (full score)
+ *   • Humidity:        30‑50 %  (full score)
+ *   • Wind:            0‑3 m/s  (full score, degrades above 10 m/s)
+ *   • Cloudiness:      0‑40 %   (slight penalty for overcast)
+ *   • Visibility:      ≥10 km   (full score, penalty below 5 km)
  */
 
 const WEIGHTS = {
@@ -38,27 +47,29 @@ function clamp(value, min, max) {
 }
 
 /**
- * Temperature sub‑score (input in °C).
- * Perfect: 20–26 °C → 100
- * Falls off linearly to 0 at ≤ −10 °C and ≥ 45 °C.
+ * Temperature sub‑score (input: feels_like in °C).
+ * Perfect: 18–24 °C → 100
+ * Cold side: linear to 0 at −10 °C  (28‑degree span)
+ * Hot side:  linear to 0 at  40 °C  (16‑degree span — heat penalised harder)
  */
-function temperatureScore(tempC) {
-  if (tempC >= 20 && tempC <= 26) return 100;
-  if (tempC < 20) return clamp(((tempC + 10) / 30) * 100, 0, 100);
-  // tempC > 26
-  return clamp(((45 - tempC) / 19) * 100, 0, 100);
+function temperatureScore(feelsLikeC) {
+  if (feelsLikeC >= 18 && feelsLikeC <= 24) return 100;
+  if (feelsLikeC < 18) return clamp(((feelsLikeC + 10) / 28) * 100, 0, 100);
+  // feelsLikeC > 24
+  return clamp(((40 - feelsLikeC) / 16) * 100, 0, 100);
 }
 
 /**
  * Humidity sub‑score (input in %).
- * Perfect: 30–60 % → 100
- * Falls off linearly to 0 at 0 % and 100 %.
+ * Perfect: 30–50 % → 100
+ * Below 30 %: linear to 0 at 0 %.
+ * Above 50 %: linear to 0 at 100 %.
  */
 function humidityScore(humidity) {
-  if (humidity >= 30 && humidity <= 60) return 100;
+  if (humidity >= 30 && humidity <= 50) return 100;
   if (humidity < 30) return clamp((humidity / 30) * 100, 0, 100);
-  // humidity > 60
-  return clamp(((100 - humidity) / 40) * 100, 0, 100);
+  // humidity > 50
+  return clamp(((100 - humidity) / 50) * 100, 0, 100);
 }
 
 /**
@@ -95,26 +106,46 @@ function visibilityScore(visMetres) {
  * @returns {number} score 0–100 rounded to 1 decimal
  */
 function computeComfortIndex(weatherData) {
-  const tempC = weatherData.main.temp - 273.15; // Kelvin → Celsius
+  const feelsLikeC = weatherData.main.feels_like - 273.15; // Kelvin → Celsius
   const humidity = weatherData.main.humidity;
   const wind = weatherData.wind.speed;
   const clouds = weatherData.clouds.all;
   const visibility = weatherData.visibility || 10000;
 
-  const tScore = temperatureScore(tempC);
-  const hScore = humidityScore(humidity);
-  const wScore = windScore(wind);
-  const cScore = cloudinessScore(clouds);
-  const vScore = visibilityScore(visibility);
+  // Floor sub-scores at 1 to avoid ln(0) in geometric mean
+  const tScore = Math.max(temperatureScore(feelsLikeC), 1);
+  const hScore = Math.max(humidityScore(humidity), 1);
+  const wScore = Math.max(windScore(wind), 1);
+  const cScore = Math.max(cloudinessScore(clouds), 1);
+  const vScore = Math.max(visibilityScore(visibility), 1);
 
-  const total =
-    tScore * WEIGHTS.temperature +
-    hScore * WEIGHTS.humidity +
-    wScore * WEIGHTS.wind +
-    cScore * WEIGHTS.cloudiness +
-    vScore * WEIGHTS.visibility;
+  // Weighted geometric mean — a single bad dimension drags the total
+  // down much harder than an arithmetic average would
+  let total = Math.exp(
+    WEIGHTS.temperature * Math.log(tScore) +
+    WEIGHTS.humidity * Math.log(hScore) +
+    WEIGHTS.wind * Math.log(wScore) +
+    WEIGHTS.cloudiness * Math.log(cScore) +
+    WEIGHTS.visibility * Math.log(vScore)
+  );
 
-  return Math.round(total * 10) / 10; // 1 decimal place
+  // Heat-stress multiplier: hot + humid compounds discomfort exponentially
+  // Kicks in when feels_like > 26°C AND humidity > 50%
+  if (feelsLikeC > 26 && humidity > 50) {
+    const heatFactor = clamp((feelsLikeC - 26) / 14, 0, 1);
+    const humidFactor = clamp((humidity - 50) / 50, 0, 1);
+    total *= Math.exp(-2 * heatFactor * humidFactor);
+  }
+
+  // Cold-wind multiplier: cold + windy compounds discomfort
+  // Kicks in when feels_like < 5°C AND wind > 5 m/s
+  if (feelsLikeC < 5 && wind > 5) {
+    const coldFactor = clamp((5 - feelsLikeC) / 15, 0, 1);
+    const windFactor = clamp((wind - 5) / 15, 0, 1);
+    total *= Math.exp(-1.5 * coldFactor * windFactor);
+  }
+
+  return Math.round(clamp(total, 0, 100) * 10) / 10; // 1 decimal place
 }
 
 module.exports = {
