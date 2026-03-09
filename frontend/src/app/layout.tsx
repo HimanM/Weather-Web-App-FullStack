@@ -4,6 +4,7 @@ import { Auth0Provider } from "@auth0/nextjs-auth0";
 import { auth0 } from "@/lib/auth0";
 import ThemeProvider from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,7 +40,8 @@ export default async function RootLayout({
         <ThemeProvider>
           <Auth0Provider user={session?.user}>
             <Navbar />
-            <main>{children}</main>
+            <main className="min-h-[calc(100vh-8rem)]">{children}</main>
+            <Footer />
           </Auth0Provider>
         </ThemeProvider>
       </body>
