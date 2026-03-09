@@ -7,12 +7,12 @@ A full-stack weather analytics application that retrieves weather data from Open
 ### Login Screen
 ![Login Screen](docs/login_screen_landing.png)
 
-### Dashboard — Dark Mode
+### Dashboard - Dark Mode
 ![Dashboard Dark Mode](docs/weather_view_page_main.png)
 
 ![Dashboard Dark Mode Partial](docs/weather_view_page_main_partial.png)
 
-### Dashboard — Light Mode
+### Dashboard - Light Mode
 ![Dashboard Light Mode](docs/weather_view_page_main_partial_light_mode.png)
 
 ### Debug Panel
@@ -58,7 +58,7 @@ Copy the example file and fill in your credentials:
 cp .env.example .env
 ```
 
-Docker Compose reads all variables from the **root `.env`** file and injects them into both containers — no separate `backend/.env` or `frontend/.env.local` needed.
+Docker Compose reads all variables from the **root `.env`** file and injects them into both containers - no separate `backend/.env` or `frontend/.env.local` needed.
 
 **Required values (in root `.env`):**
 
@@ -227,10 +227,10 @@ The geometric mean ensures **a single bad parameter drags the composite score do
 
 ### Sub-Score Details
 
-**Feels-like Temperature** (35% weight — most impactful):
+**Feels-like Temperature** (35% weight - most impactful):
 - 18–24 °C → 100 (the thermoneutral zone for a lightly clothed sedentary person)
 - Cold side: falls linearly to 0 at −10 °C (28° span)
-- Hot side: falls linearly to 0 at 40 °C (16° span — heat is penalised more aggressively)
+- Hot side: falls linearly to 0 at 40 °C (16° span - heat is penalised more aggressively)
 
 **Humidity** (25%):
 - 30–50% → 100 (tighter ideal range than typical comfort charts)
@@ -242,7 +242,7 @@ The geometric mean ensures **a single bad parameter drags the composite score do
 
 **Cloudiness** (10%):
 - 0–40% → 100
-- 100% (overcast) → 50 (mild penalty — not as impactful as temperature)
+- 100% (overcast) → 50 (mild penalty - not as impactful as temperature)
 
 **Visibility** (10%):
 - ≥10 km → 100
@@ -252,13 +252,13 @@ The geometric mean ensures **a single bad parameter drags the composite score do
 
 After the geometric mean, two exponential multipliers capture compounding discomfort:
 
-1. **Heat-stress multiplier** — activates when `feels_like > 26°C` AND `humidity > 50%`:
+1. **Heat-stress multiplier** - activates when `feels_like > 26°C` AND `humidity > 50%`:
    ```
    penalty = exp( −2 × heat_factor × humid_factor )
    ```
    This models how hot-humid conditions are disproportionately worse than either alone. At tropical extremes (40°C, 100% humidity), the score can be reduced by up to ~86%.
 
-2. **Cold-wind multiplier** — activates when `feels_like < 5°C` AND `wind > 5 m/s`:
+2. **Cold-wind multiplier** - activates when `feels_like < 5°C` AND `wind > 5 m/s`:
    ```
    penalty = exp( −1.5 × cold_factor × wind_factor )
    ```
@@ -269,7 +269,7 @@ After the geometric mean, two exponential multipliers capture compounding discom
 1. **Temperature dominates** because thermal comfort research consistently shows perceived temperature as the strongest predictor of human comfort outdoors.
 2. **Humidity is second** because it directly affects how we perceive temperature (heat index). The tighter 30–50% ideal range ensures tropical cities with 70–90% humidity are properly penalised.
 3. **Wind is third** due to wind chill effects in cold weather and general discomfort in high winds.
-4. **Cloudiness and visibility** are secondary — they affect mood and outdoor enjoyment but not physical comfort as strongly.
+4. **Cloudiness and visibility** are secondary - they affect mood and outdoor enjoyment but not physical comfort as strongly.
 
 ### Why Geometric Mean + Multipliers?
 

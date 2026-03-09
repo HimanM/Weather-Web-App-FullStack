@@ -13,11 +13,11 @@
  * wider and more realistic score spreads.
  *
  * Formula uses 5 weather parameters:
- *   1. Feels‑like Temperature (°C) — weight 35%
- *   2. Humidity (%)                — weight 25%
- *   3. Wind Speed (m/s)            — weight 20%
- *   4. Cloudiness (%)              — weight 10%
- *   5. Visibility (m)              — weight 10%
+ *   1. Feels‑like Temperature (°C) - weight 35%
+ *   2. Humidity (%)                - weight 25%
+ *   3. Wind Speed (m/s)            - weight 20%
+ *   4. Cloudiness (%)              - weight 10%
+ *   5. Visibility (m)              - weight 10%
  *
  * Post‑aggregation multipliers:
  *   • Heat‑stress: exponential penalty when feels_like > 26 °C AND humidity > 50 %
@@ -50,7 +50,7 @@ function clamp(value, min, max) {
  * Temperature sub‑score (input: feels_like in °C).
  * Perfect: 18–24 °C → 100
  * Cold side: linear to 0 at −10 °C  (28‑degree span)
- * Hot side:  linear to 0 at  40 °C  (16‑degree span — heat penalised harder)
+ * Hot side:  linear to 0 at  40 °C  (16‑degree span - heat penalised harder)
  */
 function temperatureScore(feelsLikeC) {
   if (feelsLikeC >= 18 && feelsLikeC <= 24) return 100;
@@ -119,7 +119,7 @@ function computeComfortIndex(weatherData) {
   const cScore = Math.max(cloudinessScore(clouds), 1);
   const vScore = Math.max(visibilityScore(visibility), 1);
 
-  // Weighted geometric mean — a single bad dimension drags the total
+  // Weighted geometric mean - a single bad dimension drags the total
   // down much harder than an arithmetic average would
   let total = Math.exp(
     WEIGHTS.temperature * Math.log(tScore) +

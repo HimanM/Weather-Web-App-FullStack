@@ -235,7 +235,7 @@ describe('computeComfortIndex', () => {
       visibility: 10000,
     };
 
-    // Cold AND windy — should score lower due to cold-wind multiplier
+    // Cold AND windy - should score lower due to cold-wind multiplier
     const coldWindy = {
       main: { temp: 275.15, feels_like: 271.15, humidity: 40, pressure: 1020 },
       wind: { speed: 10, deg: 0 },

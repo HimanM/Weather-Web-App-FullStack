@@ -48,7 +48,7 @@ export default function ThemeProvider({
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   }
 
-  // Prevent flash — render children only after mount
+  // Prevent flash - render children only after mount
   if (!mounted) {
     return <div style={{ visibility: "hidden" }}>{children}</div>;
   }

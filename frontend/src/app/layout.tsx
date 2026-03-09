@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Weather Analytics — Comfort Index Dashboard",
+  title: "Weather Analytics - Comfort Index Dashboard",
   description: "Real-time weather analytics with custom Comfort Index scoring",
   icons: {
     icon: "/favicon.svg",

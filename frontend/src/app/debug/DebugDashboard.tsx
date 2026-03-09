@@ -164,7 +164,7 @@ export default function DebugDashboard() {
                     </td>
                     <td className="px-4 py-3 text-xs font-mono"
                       style={{ color: "var(--text-muted)" }}>
-                      {entry.ttl > 0 ? `${entry.ttl}s` : "—"}
+                      {entry.ttl > 0 ? `${entry.ttl}s` : "-"}
                     </td>
                   </tr>
                 ))}
