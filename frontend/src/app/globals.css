@@ -2,29 +2,30 @@
 
 /* ───── Light Theme (default) ───── */
 :root {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-card: #f1f5f9;
-  --bg-card-hover: #e8edf3;
-  --bg-inset: #e2e8f0;
+  --bg-primary: #eef2f7;
+  --bg-secondary: #e6eaf1;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-inset: #f1f5f9;
   --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --icon-color: #3b82f6;
   --accent-blue: #3b82f6;
   --accent-orange: #f97316;
   --accent-green: #22c55e;
   --accent-red: #ef4444;
   --accent-yellow: #eab308;
   --border-color: #cbd5e1;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 8px 20px rgba(0, 0, 0, 0.08);
-  --gradient-start: #f1f5f9;
-  --gradient-end: #e8edf3;
-  --bar-track: #cbd5e1;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --gradient-start: #eef2f7;
+  --gradient-end: #e4e9f0;
+  --bar-track: #d1d8e0;
   --skeleton-from: #e2e8f0;
   --skeleton-via: #f1f5f9;
-  --nav-bg: rgba(241, 245, 249, 0.9);
-  --input-bg: #e2e8f0;
+  --nav-bg: rgba(238, 242, 247, 0.92);
+  --input-bg: #f1f5f9;
 }
 
 /* ───── Dark Theme ───── */
@@ -47,6 +48,7 @@
   --skeleton-via: #334155;
   --nav-bg: rgba(17, 24, 39, 0.92);
   --input-bg: #0f172a;
+  --icon-color: #60a5fa;
 }
 
 @theme inline {

@@ -2,6 +2,24 @@
 
 A full-stack weather analytics application that retrieves weather data from OpenWeatherMap, computes a custom **Comfort Index Score** for each city, and presents ranked insights through a responsive dashboard.
 
+## Screenshots
+
+### Login Screen
+![Login Screen](docs/login_screen_landing.png)
+
+### Dashboard — Dark Mode
+![Dashboard Dark Mode](docs/weather_view_page_main.png)
+
+![Dashboard Dark Mode Partial](docs/weather_view_page_main_partial.png)
+
+### Dashboard — Light Mode
+![Dashboard Light Mode](docs/weather_view_page_main_partial_light_mode.png)
+
+### Debug Panel
+![Debug Panel](docs/debug_panel.png)
+
+---
+
 ## Tech Stack
 
 | Layer     | Technology                                                  |
@@ -102,6 +120,80 @@ npm run dev  # runs on :3000
 7. **Create test user**: Dashboard → User Management → Users → Create User:
    - Email: `careers@fidenz.com`
    - Password: `Pass#fidenz`
+
+---
+
+## Docker Deployment
+
+The application ships with two Docker Compose configurations: **production** and **development**.
+
+### Production
+
+Production builds use multi-stage Dockerfiles to create optimised, minimal images.
+
+```bash
+# Build and start all services (detached)
+docker compose up --build -d
+
+# View logs
+docker compose logs -f
+
+# Stop and remove containers
+docker compose down
+
+# Stop and remove containers + volumes (wipes Redis cache)
+docker compose down -v
+```
+
+| Service    | Image / Build         | Port  | Notes                                      |
+| ---------- | --------------------- | ----- | ------------------------------------------ |
+| `redis`    | `redis:7-alpine`      | 6379  | Persistent volume `redis-data`             |
+| `backend`  | `./backend/Dockerfile`| 5000  | `node:20-alpine`, production deps only     |
+| `frontend` | `./frontend/Dockerfile`| 3000 | Next.js standalone output, Turbopack build |
+
+All environment variables are read from the root `.env` file by Docker Compose automatically.
+
+### Development (Hot Reload)
+
+Development mode mounts source directories as bind volumes so file changes are reflected instantly without a rebuild.
+
+```bash
+# Start with hot reload
+docker compose -f docker-compose.dev.yml up --build
+
+# Rebuild a single service
+docker compose -f docker-compose.dev.yml up --build frontend
+
+# Run backend tests inside the container
+docker compose -f docker-compose.dev.yml exec backend npm test
+```
+
+**Key differences from production:**
+
+| Aspect            | Production                  | Development                                |
+| ----------------- | --------------------------- | ------------------------------------------ |
+| Build target      | Final (multi-stage)         | `builder` stage (includes devDependencies) |
+| Backend command   | `node src/app.js`           | `npx nodemon src/app.js` (auto-restart)    |
+| Frontend command  | `node server.js` (standalone) | `npm run dev` (Turbopack HMR)            |
+| Source volumes    | None (code baked in)        | `./backend/src`, `./frontend/src` mounted  |
+| Redis persistence | Named volume `redis-data`   | None (ephemeral)                           |
+| `NODE_ENV`        | `production` (default)      | `development`                              |
+
+### Useful Commands
+
+```bash
+# Check running containers
+docker compose ps
+
+# Restart a single service
+docker compose restart backend
+
+# Shell into a container
+docker compose exec backend sh
+
+# Prune unused images after rebuilds
+docker image prune -f
+```
 
 ---
 

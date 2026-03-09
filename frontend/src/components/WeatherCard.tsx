@@ -70,11 +70,14 @@ export default function WeatherCard({ city }: WeatherCardProps) {
           </div>
         </div>
         {city.weatherIcon && (
-          <img
-            src={getWeatherIconUrl(city.weatherIcon)}
-            alt={city.weatherDescription}
-            className="w-14 h-14 -mt-2 -mr-1 drop-shadow-lg"
-          />
+          <div className="w-14 h-14 -mt-2 -mr-1 rounded-full flex items-center justify-center"
+            style={{ background: "var(--bg-inset)" }}>
+            <img
+              src={getWeatherIconUrl(city.weatherIcon)}
+              alt={city.weatherDescription}
+              className="w-12 h-12 drop-shadow-lg"
+            />
+          </div>
         )}
       </div>
 
@@ -144,9 +147,9 @@ function DetailItem({
   icon: LucideIcon;
 }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-lg px-3 py-2"
-      style={{ background: "var(--bg-inset)" }}>
-      <Icon className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+    <div className="flex items-center gap-2.5 rounded-lg px-3 py-2 border"
+      style={{ background: "var(--bg-inset)", borderColor: "var(--border-color)" }}>
+      <Icon className="w-4 h-4 shrink-0" style={{ color: "var(--icon-color)" }} />
       <div>
         <p className="text-[10px] uppercase tracking-wider"
           style={{ color: "var(--text-muted)" }}>
